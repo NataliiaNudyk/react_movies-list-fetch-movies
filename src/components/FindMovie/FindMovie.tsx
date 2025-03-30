@@ -12,38 +12,37 @@ type Props = {
 export const FindMovie: React.FC<Props> = ({ onAddNewMovie }) => {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [query, setQuery] = useState('');
-  const [hasError, setHasError] = useState(false);
+  const [hasError, setHasError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoading(true);
-
+  const findMovie = () => {
     getMovie(query.trim())
-      .then(movieFromServer => {
-        if ('Error' in movieFromServer) {
-          setHasError(true);
+      .then(moviesFromServer => {
+        if ('Error' in moviesFromServer) {
+          setHasError('Can&apos;t find a movie with such a title');
 
           return;
         }
 
-        const newMovie = {
-          title: movieFromServer.Title,
-          description: movieFromServer.Plot,
-          imgUrl: movieFromServer.Poster,
-          imdbUrl: `https://www.imdb.com/title/${movieFromServer.imdbID}`,
-          imdbId: movieFromServer.imdbID,
-        };
+        setMovie({
+          title: moviesFromServer.Title,
+          description: moviesFromServer.Plot,
+          imdbUrl: `https://www.imdb.com/title/${moviesFromServer.imdbID}`,
+          imdbId: moviesFromServer.imdbID,
+          imgUrl:
+            moviesFromServer.Poster !== 'N/A'
+              ? moviesFromServer.Poster
+              : 'https://via.placeholder.com/360x270.png?text=no%20preview',
+        });
+      })
+      .catch(() => setHasError('Try again'))
+      .finally(() => setIsLoading(false));
+  };
 
-        setMovie(newMovie);
-      })
-      .catch(error => {
-        // eslint-disable-next-line no-console
-        console.error(error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoading(true);
+    findMovie();
   };
 
   return (
@@ -60,20 +59,20 @@ export const FindMovie: React.FC<Props> = ({ onAddNewMovie }) => {
               type="text"
               id="movie-title"
               placeholder="Enter a title to search"
-              className={classNames('input', {
-                'is-danger': hasError,
+              className={classNames('button is-light', {
+                'is-loading': isLoading,
               })}
               value={query}
               onChange={event => {
                 setQuery(event.target.value);
-                setHasError(false);
+                setHasError('');
               }}
             />
           </div>
 
           {hasError && (
             <p className="help is-danger" data-cy="errorMessage">
-              Can&apos;t find a movie with such a title
+              {hasError}
             </p>
           )}
         </div>
